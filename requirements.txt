@@ -1,0 +1,4 @@
+firebase-admin
+ccxt
+pandas
+
