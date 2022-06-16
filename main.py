@@ -41,6 +41,7 @@ def strategy():
             money = data["money"]
             stopLoss = data["stopLoss"]
             targetProfit = data["targetProfit"]
+            inPosition = False
             exchange = ccxt.binance({
                 "apiKey": apiKey,
                 "secret": apiSecret,
