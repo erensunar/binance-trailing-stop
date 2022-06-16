@@ -2,7 +2,9 @@ import firebase_admin
 import ccxt
 import pandas as pd
 from firebase_admin import credentials,firestore
+import json
 import threading
+import unicorn_binance_websocket_api
 credentialData = credentials.Certificate("credentials.json")
 firebase_admin.initialize_app(credentialData)
 firestoreDb = firestore.client()
@@ -29,6 +31,7 @@ def on_snapshot(col_snapshot, changes, read_time):
 
 
 def strategy():
+    global currentPrice,stopLossPrice,targetPrice
     while True:
         print("Waiting")
         if botWork:
@@ -47,18 +50,14 @@ def strategy():
                 },
                 'enableRateLimit': True
                 })
+            ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
+            ubwa.create_stream(['trade', 'kline_1m'], [symbol.lower()])
             
             while botWork:
     
-                try:
-                    
-                    
+                try:            
                     balance = exchange.fetch_balance()
                     
-                    bars = exchange.fetch_ohlcv(symbol, timeframe="1m", since = None, limit = 1)
-                    df = pd.DataFrame(bars, columns=["timestamp", "open", "high", "low", "close", "volume"])
-
-                    currentPrice = float(df["close"][len(df.index) - 1])
 
 
                     def longEnter(amount):
@@ -74,6 +73,21 @@ def strategy():
                         global inPosition
                         order = exchange.create_market_sell_order(symbol, float(balance["total"][symbol.split("USDT")[0]]))
                         inPosition = False
+                    
+                    def getCurrentPrice():
+                        global currentPrice
+                        oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
+                        if oldest_data_from_stream_buffer:
+                            info  =oldest_data_from_stream_buffer
+                            info = json.loads(info)
+                            try:
+                                currentPrice = info["data"]["p"]
+                            except:
+
+                                getCurrentPrice()
+                        return float(currentPrice)
+                    
+                    currentPrice = getCurrentPrice()
 
                     if not inPosition:
                         print("Signal received, purchase is processing.")
