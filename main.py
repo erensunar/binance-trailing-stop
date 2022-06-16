@@ -58,8 +58,6 @@ def strategy():
     
                 try:            
                     balance = exchange.fetch_balance()
-                    
-
 
                     def longEnter(amount):
                         global targetPrice,stopLossPrice,inPosition
@@ -72,7 +70,10 @@ def strategy():
 
                     def longExit():
                         global inPosition
-                        order = exchange.create_market_sell_order(symbol, float(balance["total"][symbol.split("USDT")[0]]))
+                        order = exchange.create_market_sell_order(
+                            symbol,
+                            float(balance["total"][symbol.split("USDT")[0]])
+                        )
                         inPosition = False
                     
                     def getCurrentPrice():
@@ -100,11 +101,8 @@ def strategy():
                         longExit()
                         firestoreDb.collection("signal").document("channel1").update({"botRun": False})
 
-                    
-
-                    
                     if  inPosition and currentPrice >= targetPrice:
-                        print("The target has been reached. The stop loss  increased by "+ str(stopLoss)+  ".Target price increased by " +str(targetProfit) + ".")
+                        print("The target has been reached. The stop loss  increased by "+ str(stopLoss) + ".Target price increased by " +str(targetProfit) + ".")
                         stopLossPrice = stopLossPrice + (float(stopLossPrice / 100) * stopLoss)
                         targetPrice = targetPrice + ((float(targetPrice) / 100) * targetProfit) 
                     
@@ -112,19 +110,24 @@ def strategy():
                         print("Price: "+ str(currentPrice))
                         print("Stop Loss Price: " + str(stopLossPrice))
                         print("Target Price: " + str(targetPrice))
-                        print("=======================================================================================================================================")
+                        print("=====================================================================================")
                 except ccxt.BaseError as Error:
                     print ("[ERROR] ", Error )
                     continue
 
+
 col_query = doc_ref = firestoreDb.collection(u'signal').document(u'channel1')
 query_watch = col_query.on_snapshot(on_snapshot)
+
+
 def control():
     import time
     global query_watch
     while True:
         time.sleep(0.02)
         query_watch
+
+
 thread = threading.Thread(target=control)
 thread.start()
 thread2 = threading.Thread(target=strategy)
